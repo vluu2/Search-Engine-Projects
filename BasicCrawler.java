@@ -26,16 +26,14 @@ import com.mongodb.MongoClient;
 import com.mongodb.util.JSON;
 
 
-/* We used http://www.mkyong.com/java/jsoup-html-parser-hello-world-examples/ as reference for our extractor 
+/* 
+ * We used http://www.mkyong.com/java/jsoup-html-parser-hello-world-examples/ as reference for our extractor 
  * We used http://jsoup.org/cookbook/extracting-data/example-list-links to get the http links
  * 
  * 
  * 
  * 
- * 
  * */
-
-
 
 public class BasicCrawler 
 {
@@ -69,8 +67,7 @@ public class BasicCrawler
 		
 		if(args.length == 4)
 		{
-			Writer output = null;
-			crawlUrl(collection, cUrl, args[3], count, avu, ex, output);	//args[1],, original
+			crawlUrl(collection, cUrl, args[3], count, avu, ex);
 		}
 		else if(args.length == 5)
 		{
@@ -78,22 +75,8 @@ public class BasicCrawler
 
 			if( extract.equals("-e") )
 			{
-				ex = true;
-				
-				String path = "C:/Users/Allen/Desktop/cs454 assignments/db1.txt";
-		        Writer output = null;
-		        File file = new File(path);
-		        try 
-		        {
-					output = new BufferedWriter(new FileWriter(file));
-				} 
-		        catch (IOException e) 
-		        {
-					e.printStackTrace();
-				}
-				
-				
-				crawlUrl(collection, cUrl, args[3], count, avu, ex, output);	//args[1],, original
+				ex = true;			
+				crawlUrl(collection, cUrl, args[3], count, avu, ex);
 			}
 			else
 			{
@@ -108,7 +91,7 @@ public class BasicCrawler
 	}
  //-------------------------------------------------------------------------------------------
 	static void crawlUrl(DBCollection collection, ArrayList<String> currentList, String depth, int count, 
-			ArrayList<String> p, boolean x, Writer output)	//, String url String original,
+			ArrayList<String> p, boolean x)	
 	{
 		int tracker = count;
 		
@@ -144,10 +127,6 @@ public class BasicCrawler
 							tester.put("Text", text);
 							
 							System.out.println("All Text on site : " + text);
-							
-					        String jsonString = tester.toString();
-					        output.write(jsonString);
-					        ((BufferedWriter) output).newLine();							
 							
 							DBObject dbObject = (DBObject) JSON.parse(tester.toString());
 							collection.insert(dbObject);
@@ -197,18 +176,10 @@ public class BasicCrawler
 			System.out.println("Newdep contains: " + newDep);
 			System.out.println("Tracker contains: " + tracker);
 			
-			crawlUrl(collection, list , newDep, tracker, p, x, output); //original
+			crawlUrl(collection, list , newDep, tracker, p, x);
 		}
 		else
 		{
-			try 
-			{
-				output.close();
-			} 
-			catch (IOException e) 
-			{
-				e.printStackTrace();
-			}
 			System.out.println("DONE");
 			System.exit(0);
 		}
