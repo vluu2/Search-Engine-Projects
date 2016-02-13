@@ -14,3 +14,4 @@
 
 # More Commands
 * https://education.github.com/git-cheat-sheet-education.pdf 
+* Incase of index lock in Git Bash, type: rm -f ./.git/index.lock 
