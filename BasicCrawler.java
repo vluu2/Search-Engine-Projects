@@ -139,27 +139,15 @@ public class BasicCrawler
 							JSONObject tester = new JSONObject();
 							tester.put("Name", doc.title());	//gets the name of official website
 							tester.put("URL", currentList.get(i));
-							
-//							Elements images = doc.select("img[src~=(?i)\\.(png|jpe?g|gif)]");
-//							tester.put("images", images);
-							
-//							String description = doc.select("meta[name=description]").get(0).attr("content");
-//							System.out.println("Meta description : " + description);
 								
 							String text = doc.select("body").text();
 							tester.put("Text", text);
 							
 							System.out.println("All Text on site : " + text);
 							
-//							String path = "C:/Users/Allen/Desktop/cs454 assignments/db1.txt";
 					        String jsonString = tester.toString();
-//					        Writer output = null;
-//					        File file = new File(path);
-//					        output = new BufferedWriter(new FileWriter(file));
 					        output.write(jsonString);
-//					        output.close();
-					        ((BufferedWriter) output).newLine();
-							
+					        ((BufferedWriter) output).newLine();							
 							
 							DBObject dbObject = (DBObject) JSON.parse(tester.toString());
 							collection.insert(dbObject);
@@ -180,8 +168,7 @@ public class BasicCrawler
 							}
 							
 							if(same != true)
-							{
-								//System.out.println("Inside of addUrl: " + addUrl);
+							{;
 								list.add(addUrl);
 							}					
 						}
