@@ -1,0 +1,98 @@
+apply plugin: 'java'
+apply plugin: 'eclipse'
+
+sourceCompatibility = 1.8
+version = '1.0'
+
+repositories 
+{
+    mavenCentral()
+}
+
+dependencies 
+{
+    compile 'com.google.guava:guava:18.0'
+	compile 'org.jsoup:jsoup:1.8.3'
+	compile 'org.mongodb:mongo-java-driver:3.2.1'
+	compile 'org.json:json:20090211'
+	
+    testCompile group: 'junit', name: 'junit', version: '4.+'
+}
+
+test 
+{
+    // show standard out and standard error of the test JVM(s) on the console
+    testLogging.showStandardStreams = true
+}
+
+task hello(type: JavaExec){ 
+
+    classpath = sourceSets.main.runtimeClasspath
+
+    main = 'edu.csula.cs454.example.HelloWorld'
+    
+    // simple defensive programming to define optional arguments
+    if (project.hasProperty("arguments")) 
+    {
+        args arguments.split(" ")
+    }
+}
+
+task crawler(type: JavaExec){ 
+
+    classpath = sourceSets.main.runtimeClasspath
+
+    main = 'edu.csula.cs454.example.BasicCrawler'
+    
+    // simple defensive programming to define optional arguments
+    if (project.hasProperty("arguments")) 
+    {
+        args arguments.split(" ")
+    }
+}
+
+
+task readFile(type: JavaExec){
+
+    classpath = sourceSets.main.runtimeClasspath
+
+    main = 'edu.csula.cs454.example.FileRead'
+}
+
+task CrawlerJar(type: Jar) {
+    manifest {
+        attributes 'Implementation-Title': 'Hello Jar Example',
+                'Implementation-Version': version,
+                'Main-Class': 'edu.csula.cs454.example.BasicCrawler'
+    }
+    baseName = 'crawler'
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+    with jar
+}
+
+
+
+task dumpster(type: JavaExec){ 
+
+    classpath = sourceSets.main.runtimeClasspath
+
+    main = 'edu.csula.cs454.example.data_dump'
+    
+    // simple defensive programming to define optional arguments
+    if (project.hasProperty("arguments")) 
+    {
+        args arguments.split(" ")
+    }
+}
+
+
+task dump_data(type: Jar) {
+    manifest {
+        attributes 'Implementation-Title': 'Hello Jar Example',
+                'Implementation-Version': version,
+                'Main-Class': 'edu.csula.cs454.example.data_dump'
+    }
+    baseName = 'dump_data'
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+    with jar
+}
