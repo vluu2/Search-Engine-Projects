@@ -11,3 +11,6 @@
 * Git Push - Actually uploading the file from local to cloud (From what was committed)
 
 * Git Pull - Gets latest code from cloud
+
+# More Commands
+* https://education.github.com/git-cheat-sheet-education.pdf 
