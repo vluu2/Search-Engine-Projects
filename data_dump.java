@@ -5,19 +5,27 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.mongodb.morphia.Morphia;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
-import com.mongodb.DBObject;
+//import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
+import com.mongodb.util.JSON;
 
 /*
  * Used http://stackoverflow.com/questions/7417401/writing-jsonobject-into-a-file for reference
  */
+
 public class data_dump 
 {
 
@@ -41,56 +49,32 @@ public class data_dump
 			e.printStackTrace();
 		}
         
-//    	System.out.println(collection.toString());
-        
-       // String jsonString = tester.toString();
 
     	DBCursor cursor = db.getCollection("dummyTable").find();
-//    	JSONParser parser = new JSONParser();
-    	
-//    	DBObject obj;
     	BasicDBObject djo;
+    	
+    	ObjectMapper mapper = new ObjectMapper();
+    	DateFormat df = new SimpleDateFormat("yyyy-MM-dd");//HH:mm a z
+    	mapper.setDateFormat(df);    	
     	
 		while (cursor.hasNext()) 
 		{
-			//obj = cursor.next();
 			try 
 			{
 				System.out.println("IN WHILE LOOP");
 				djo = (BasicDBObject) cursor.next();
 				
-				output.write(djo.getString("Name"));
-				((BufferedWriter) output).newLine();
+				output.write(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(djo));
 				
-				output.write(djo.getString("URL"));
-				((BufferedWriter) output).newLine();
-				
-				output.write(path);
-				((BufferedWriter) output).newLine();
-				
-				if(djo.getString("Text") != null)
-				{
-					output.write(djo.getString("Text"));
-				}
-				
-				((BufferedWriter) output).newLine();
-				((BufferedWriter) output).newLine();
+				((BufferedWriter) output).newLine();				
 				((BufferedWriter) output).newLine();
 			} 
 			catch (IOException e) 
 			{
 				e.printStackTrace();
 			} 
-//			catch (JSONException e) 
-//			{
-//				e.printStackTrace();
-//			}
-			
-			
-//			System.out.println("");
 		}
-        	
-        
+        	       
         try 
 		{
 			output.close();
