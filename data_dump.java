@@ -54,20 +54,35 @@ public class data_dump
     	BasicDBObject djo;
     	
     	ObjectMapper mapper = new ObjectMapper();
-    	DateFormat df = new SimpleDateFormat("yyyy-MM-dd");//HH:mm a z
+    	DateFormat df = new SimpleDateFormat("yyyy-MM-dd");
     	mapper.setDateFormat(df);    	
     	
 		while (cursor.hasNext()) 
 		{
 			try 
 			{
-				System.out.println("IN WHILE LOOP");
+//				System.out.println("IN WHILE LOOP");
 				djo = (BasicDBObject) cursor.next();
 				
-				output.write(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(djo));
+//				output.write(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(djo));
+//				
+//				((BufferedWriter) output).newLine();				
+//				((BufferedWriter) output).newLine();
 				
-				((BufferedWriter) output).newLine();				
+				output.write("{");
 				((BufferedWriter) output).newLine();
+				output.write("\t\"id\": " + djo.getString("_id"));
+				((BufferedWriter) output).newLine();
+				output.write("\t\"Path\": " + "\"" + djo.getString("Path") + "\"");
+				((BufferedWriter) output).newLine();
+				output.write("\t\"Text\": " + "\"" + djo.get("Text") + "\"");
+				((BufferedWriter) output).newLine();
+				output.write("\t\"Url\": " + "\"" + djo.getString("URL") + "\"");
+				((BufferedWriter) output).newLine();
+				output.write("\t\"Name\": " + "\"" + djo.getString("Name") + "\"");
+				((BufferedWriter) output).newLine();
+				output.write("}");
+				
 			} 
 			catch (IOException e) 
 			{
