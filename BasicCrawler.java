@@ -38,7 +38,7 @@ import com.mongodb.util.JSON;
 public class BasicCrawler 
 {
 	public static void main(String[] args) 
-	{			
+	{			 
 		MongoClient mongo = new MongoClient( "localhost" , 27017 );
 		DB db = mongo.getDB("cs454-db");
 		DBCollection collection = db.getCollection("dummyTable");	
@@ -127,9 +127,28 @@ public class BasicCrawler
 							tester.put("Text", text);
 							
 							System.out.println("All Text on site : " + text);
+														
+							try 
+					        {								
+								String path = "C:/Users/Allen/Desktop/cs454 assignments/TESTER/" + doc.title() + ".html";
+						        Writer output = null;
+						        
+						        File file = new File(path);				        
+								output = new BufferedWriter(new FileWriter(file));									        
+						        String docString = doc.toString();
+						        output.write(docString);
+								output.close();
+								
+								tester.put("Path", path);
+							} 
+							catch (IOException e) 
+							{
+								e.printStackTrace();
+							}
 							
 							DBObject dbObject = (DBObject) JSON.parse(tester.toString());
 							collection.insert(dbObject);
+							
 						}					
 						
 						
