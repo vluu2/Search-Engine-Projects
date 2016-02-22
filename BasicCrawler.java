@@ -7,6 +7,9 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.io.Writer;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -29,7 +32,7 @@ import com.mongodb.util.JSON;
 /* 
  * We used http://www.mkyong.com/java/jsoup-html-parser-hello-world-examples/ as reference for our extractor 
  * We used http://jsoup.org/cookbook/extracting-data/example-list-links to get the http links
- * 
+ * We used http://www.mkyong.com/java/how-do-convert-byte-array-to-string-in-java/ for hashing
  * 
  * 
  * 
@@ -38,7 +41,7 @@ import com.mongodb.util.JSON;
 public class BasicCrawler 
 {
 	public static void main(String[] args) 
-	{			
+	{			 
 		MongoClient mongo = new MongoClient( "localhost" , 27017 );
 		DB db = mongo.getDB("cs454-db");
 		DBCollection collection = db.getCollection("dummyTable");	
@@ -120,16 +123,37 @@ public class BasicCrawler
 						if(x == true)
 						{	
 							JSONObject tester = new JSONObject();
-							tester.put("Name", doc.title());	//gets the name of official website
+							tester.put("Title", doc.title());	//gets the name of official website
 							tester.put("URL", currentList.get(i));
 								
 							String text = doc.select("body").text();
 							tester.put("Text", text);
 							
 							System.out.println("All Text on site : " + text);
+														
+							try 
+					        {			
+								String hash = hashFunction(doc.title());
+								tester.put("hashTitle", hash);
+								String path = "C:/Users/Allen/Desktop/cs454 assignments/TESTER/" + hash + ".html";
+						        Writer output = null;
+						        
+						        File file = new File(path);				        
+								output = new BufferedWriter(new FileWriter(file));									        
+						        String docString = doc.toString();
+						        output.write(docString);
+								output.close();
+								
+								tester.put("Path", path);
+							} 
+							catch (IOException e) 
+							{
+								e.printStackTrace();
+							}
 							
 							DBObject dbObject = (DBObject) JSON.parse(tester.toString());
 							collection.insert(dbObject);
+							
 						}					
 						
 						
@@ -157,6 +181,7 @@ public class BasicCrawler
 					} 
 					catch (JSONException e) 
 					{
+						String text = "No text for this page";
 						System.out.println("Catch: 1");
 						e.printStackTrace();
 					}						
@@ -184,5 +209,32 @@ public class BasicCrawler
 			System.exit(0);
 		}
 		
+	}
+//-----------------------------------------------------------------------------------------------------------------
+	public static String hashFunction(String name)
+	{
+		String toHash = name;
+		MessageDigest digest;
+		byte[] hash;
+		String hashName = "";
+		StringBuffer sb = new StringBuffer();
+		try 
+		{
+			digest = MessageDigest.getInstance("SHA-256");
+			hash = digest.digest(toHash.getBytes(StandardCharsets.UTF_8));
+						
+	        for (int i = 0; i < hash.length; i++) 
+	        {
+	        	sb.append(Integer.toString((hash[i] & 0xff) + 0x100, 16).substring(1));
+	        }
+				
+			hashName = sb.toString();
+		} 
+		catch (NoSuchAlgorithmException e) 
+		{
+			e.printStackTrace();
+		}
+		
+		return hashName;
 	}
 }
