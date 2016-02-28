@@ -20,6 +20,8 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import org.mongodb.morphia.Datastore;
+import org.mongodb.morphia.Morphia;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
@@ -41,15 +43,16 @@ import com.mongodb.util.JSON;
 
 public class BasicCrawler 
 {
+	static Datastore mdb = null;
+	
 	public static void main(String[] args) 
 	{			 
 		MongoClient mongo = new MongoClient( "localhost" , 27017 );
-		DB db = mongo.getDB("cs454-db");
 		
-		DBCollection collection = db.createCollection("dummyTable", new BasicDBObject());
-		
-		DBCollection word = db.createCollection("UniqueWords", new BasicDBObject());	
-		
+		Morphia morphia = new Morphia();
+		morphia.map(metaData.class);
+		morphia.map(wordData.class);
+		mdb = morphia.createDatastore(mongo, "cs454");
 		
 		int count = 1;
 		String original = args[1];
@@ -72,7 +75,7 @@ public class BasicCrawler
 		
 		if(args.length == 4)
 		{
-			crawlUrl(word, collection, cUrl, args[3], count, avu, ex);
+			crawlUrl(cUrl, args[3], count, avu, ex);//word, collection, 
 		}
 		else if(args.length == 5)
 		{
@@ -81,7 +84,7 @@ public class BasicCrawler
 			if( extract.equals("-e") )
 			{
 				ex = true;			
-				crawlUrl(word, collection, cUrl, args[3], count, avu, ex);
+				crawlUrl(cUrl, args[3], count, avu, ex);//word, collection, 
 			}
 			else
 			{
@@ -95,8 +98,7 @@ public class BasicCrawler
 		}		
 	}
 //-------------------------------------------------------------------------------------------
-	static void crawlUrl(DBCollection word, DBCollection collection, ArrayList<String> currentList, String depth, int count, 
-			ArrayList<String> p, boolean x)	
+	static void crawlUrl(ArrayList<String> currentList, String depth, int count, ArrayList<String> p, boolean x)
 	{
 		int tracker = count;
 		
@@ -118,77 +120,65 @@ public class BasicCrawler
 					
 					p.add(currentList.get(i));
 					
-					try 
-					{
-						links = doc.select("a[href]");
+					links = doc.select("a[href]");
+					
+					if(x == true)
+					{	
+						metaData tester = new metaData();
+						tester.setTitle(doc.title());	//gets the name of official website
+						tester.setUrl(currentList.get(i));
+							
+						String text = doc.select("body").text();							
+						tester.setText(text);
 						
-						if(x == true)
-						{	
-							JSONObject tester = new JSONObject();
-							tester.put("Title", doc.title());	//gets the name of official website
-							tester.put("URL", currentList.get(i));
-								
-							String text = doc.select("body").text();							
-							tester.put("Text", text);
+						checkWord(text);	//word, 
+						
+						System.out.println("All Text on site : " + text);
+													
+						try 
+				        {			
+							String hash = hashFunction(doc.title());
+							tester.setHash(hash);
+							String path = "C:/Users/Allen/Desktop/cs454 assignments/TESTER/" + hash + ".html";
+					        Writer output = null;
+					        
+					        File file = new File(path);				        
+							output = new BufferedWriter(new FileWriter(file));									        
+					        String docString = doc.toString();
+					        output.write(docString);
+							output.close();
 							
-							checkWord(word, text);
-							
-							System.out.println("All Text on site : " + text);
-														
-							try 
-					        {			
-								String hash = hashFunction(doc.title());
-								tester.put("hashTitle", hash);
-								String path = "C:/Users/Allen/Desktop/cs454 assignments/TESTER/" + hash + ".html";
-						        Writer output = null;
-						        
-						        File file = new File(path);				        
-								output = new BufferedWriter(new FileWriter(file));									        
-						        String docString = doc.toString();
-						        output.write(docString);
-								output.close();
-								
-								tester.put("Path", path);
-							} 
-							catch (IOException e) 
+							tester.setPath(path);
+						} 
+						catch (IOException e) 
+						{
+							e.printStackTrace();
+						}
+		
+						mdb.save(tester);							
+					}					
+					
+					
+					for (Element link : links) 
+					{	
+						addUrl = "" + link.absUrl("href");
+						
+						boolean same = false;
+						for(int j = 0; j < p.size(); j++)
+						{
+							if(p.get(j).equals(addUrl))
 							{
-								e.printStackTrace();
+								same = true;
 							}
-							
-							DBObject dbObject = (DBObject) JSON.parse(tester.toString());
-							collection.insert(dbObject);
-							
-						}					
-						
-						
-						for (Element link : links) 
-						{	
-							addUrl = "" + link.absUrl("href");
-							
-							boolean same = false;
-							for(int j = 0; j < p.size(); j++)
-							{
-								if(p.get(j).equals(addUrl))
-								{
-									same = true;
-								}
-							}
-							
-							if(same != true)
-							{;
-								list.add(addUrl);
-							}					
 						}
 						
-						System.out.println("Depth level: " + dep);
+						if(same != true)
+						{;
+							list.add(addUrl);
+						}					
+					}
 					
-					} 
-					catch (JSONException e) 
-					{
-						String text = "No text for this page";
-						System.out.println("Catch: 1");
-						e.printStackTrace();
-					}						
+					System.out.println("Depth level: " + dep);								
 				} 
 				catch (IOException e) 
 				{
@@ -205,7 +195,7 @@ public class BasicCrawler
 			System.out.println("Newdep contains: " + newDep);
 			System.out.println("Tracker contains: " + tracker);
 			
-			crawlUrl(word, collection, list , newDep, tracker, p, x);
+			crawlUrl(list , newDep, tracker, p, x); 
 		}
 		else
 		{
@@ -242,7 +232,7 @@ public class BasicCrawler
 		return hashName;
 	}
 //-----------------------------------------------------------------------------------------------------------------
-	public static void checkWord(DBCollection word, String texts)
+	public static void checkWord(String texts)
 	{
 		String[] array = texts.split(" ");
 		
@@ -314,59 +304,40 @@ public class BasicCrawler
 			
 			if( count == check.length )
 			{
-				addWord(word, array[i]);			
+				addWord(array[i]); 		
 			}
 			
 			count = 0;
 		}	
 	}
 //-----------------------------------------------------------------------------------------------------------------
-	public static void addWord(DBCollection word, String uniqueWord)
+	public static void addWord(String uniqueWord)
 	{
-		JSONObject uWord = new JSONObject();
-		DBCursor cursor = word.find();
-		DBObject dbObject;
+		wordData mWord = new wordData();
 		
-		if(word.count() == 0)
+		List<wordData> currentList = mdb.find(wordData.class).asList();
+	
+		if(currentList.size() == 0)
 		{
-			try 
-			{
-				uWord.put("Word", uniqueWord);
-				dbObject = (DBObject) JSON.parse(uWord.toString());
-				word.insert(dbObject);
-			} 
-			catch (JSONException e) 
-			{
-				e.printStackTrace();
-			}
+			mWord.setWord(uniqueWord);
+			mdb.save(mWord);
 		}
 		else
 		{
-			BasicDBObject wjo;
 			int count = 0;
 			
-			while(cursor.hasNext())
+			for(int i = 0; i < currentList.size(); i++)
 			{
-				wjo = (BasicDBObject) cursor.next();
-				if( !(uniqueWord.equals(wjo.getString("Word"))) )
+				if( !(uniqueWord.equals(currentList.get(i).getWord())) )
 				{
 					count++;
 				}
-				
 			}
-			
-			if(count == word.count())
+			if(count == currentList.size())
 			{
-				try 
-				{
-					uWord.put("Word", uniqueWord);
-					dbObject = (DBObject) JSON.parse(uWord.toString());
-					word.insert(dbObject);
-				} 
-				catch (JSONException e) 
-				{
-					e.printStackTrace();
-				}
+				mWord.setWord(uniqueWord);
+
+				mdb.save(mWord);
 			}
 			
 		}
