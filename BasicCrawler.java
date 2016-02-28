@@ -46,9 +46,8 @@ public class BasicCrawler
 		MongoClient mongo = new MongoClient( "localhost" , 27017 );
 		DB db = mongo.getDB("cs454-db");
 		
-		DBCollection collection = db.createCollection("dummyTable", new BasicDBObject());	//.getCollection("dummyTable");	
+		DBCollection collection = db.createCollection("dummyTable", new BasicDBObject());
 		
-//		DB worddb = mongo.getDB("wordDB");
 		DBCollection word = db.createCollection("UniqueWords", new BasicDBObject());	
 		
 		
@@ -319,15 +318,13 @@ public class BasicCrawler
 			}
 			
 			count = 0;
-		}
-		
-		
+		}	
 	}
 //-----------------------------------------------------------------------------------------------------------------
 	public static void addWord(DBCollection word, String uniqueWord)
 	{
 		JSONObject uWord = new JSONObject();
-		DBCursor cursor = word.getCollection("UniqueWords").find();
+		DBCursor cursor = word.find();
 		DBObject dbObject;
 		
 		if(word.count() == 0)
@@ -351,7 +348,6 @@ public class BasicCrawler
 			while(cursor.hasNext())
 			{
 				wjo = (BasicDBObject) cursor.next();
-				
 				if( !(uniqueWord.equals(wjo.getString("Word"))) )
 				{
 					count++;
@@ -359,7 +355,7 @@ public class BasicCrawler
 				
 			}
 			
-			if( count == word.count())
+			if(count == word.count())
 			{
 				try 
 				{
