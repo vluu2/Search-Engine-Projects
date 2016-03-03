@@ -1,6 +1,10 @@
 package edu.csula.cs454.example;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.Writer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -14,6 +18,7 @@ import org.json.JSONObject;
 import org.mongodb.morphia.Datastore;
 import org.mongodb.morphia.Morphia;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
@@ -27,21 +32,11 @@ public class Indexing
 	public static void main(String[] args) 
 	{
 		MongoClient mongo = new MongoClient( "localhost" , 27017 );
-
-//		DB db = mongo.getDB("cs454-db");
-//		DBCollection word = db.getCollection("UniqueWords");	
-//		DBCollection connection = db.getCollection("dummyTable");
 		
 		Morphia morphia = new Morphia();
 		morphia.map(metaData.class);
 		morphia.map(wordData.class);
 		mdb = morphia.createDatastore(mongo, "cs454");
-		
-//		JSONObject djo;
-//		DBCursor cursor = connection.find();	
-//		BasicDBObject idk;			
-//		DBCursor wordCursor = word.find();
-//		BasicDBObject wordObj;
 		
 		String before;
 		String[] text;
@@ -55,18 +50,13 @@ public class Indexing
 		
 		
 		for(int i = 0; i < currentWordList.size(); i++)
-		{
-//			wordObj = (BasicDBObject) wordCursor.next();
-//			currentWord = wordObj.getString("Word");
-			
+		{	
 			currentWord = currentWordList.get(i).getWord();
 			ArrayList<String> pageContainWord = new ArrayList<String>();
 			
-			for(int j = 0; j < currentUrlList.size(); j++)	//while(cursor.hasNext())
-			{
-//				idk = (BasicDBObject) cursor.next();
-				
-				before = currentUrlList.get(j).getText();	//idk.getString("Text");
+			for(int j = 0; j < currentUrlList.size(); j++)
+			{				
+				before = currentUrlList.get(j).getText();
 				text = before.split(" ");
 						
 				for(int k = 0; k < text.length; k++)
@@ -78,9 +68,7 @@ public class Indexing
 				}
 				
 				if(decider == true)
-				{
-//					JSONObject add = (JSONObject) idk;
-					
+				{				
 					pageContainWord.add( currentUrlList.get(j).getHash() );
 					break;
 				}
@@ -89,13 +77,20 @@ public class Indexing
 			
 			hm.put(currentWord, pageContainWord);
 			
-			currentWordList.get(i).setHashMap(hm);
+			currentWordList.get(i).setHashMap(hm);	
+			
+			tfidf(currentUrlList.size(), hm);
+				
 		}
+		
+		printAll(currentUrlList);
 
 	}
 //-----------------------------------------------------------------------------------------------------------------------		
-	public double tfidf(int docCount, int totalDoc, HashMap<String, ArrayList<String>> hm)	//String word, 
-	{		
+	public static void tfidf(int totalDoc, HashMap<String, ArrayList<String>> hm)
+	{				
+		System.out.println("In TFIDF");
+		
 		double value = 0;
 		
 		HashMap<String, ArrayList<String>> filterHm = hm;
@@ -111,36 +106,41 @@ public class Indexing
 		
 		List<metaData> currentUrlList = mdb.find(metaData.class).asList();
 				
-		String text;
+		String word;
 		
-		//String currentWord = word;
-		
-		String[] arr; 
+		String[] text; 
 		
 		Map.Entry<String, ArrayList<String>> currentDoc;
 		Set<Entry<String, ArrayList<String>>> set = filterHm.entrySet();
 		Iterator<Entry<String, ArrayList<String>>> i = set.iterator();
 		
-		while(i.hasNext()) //for(int i = 0; i < filterHm.size(); i++)	//while (cursor.hasNext()) 
+		ArrayList<String> urlsWithWord;
+		
+		metaData findObj;
+		ArrayList<HashMap> wordAndTfidf;
+		
+		
+		while(i.hasNext())
 		{	
-//			djo = (JSONObject) cursor.next();
-			
-//			try 
-//			{
-//				text = (String) djo.get("Text");
+			System.out.println("In TFIDF While Loop");
 			
 			currentDoc = (Map.Entry<String, ArrayList<String>>) i.next();
-			text = currentDoc.getKey();	//currentUrlList.get(i).getText();
-			arr = text.split(" ");			
-
+			word = currentDoc.getKey();		
+			
+			urlsWithWord = currentDoc.getValue();
 //------------------------------------------------------------------------------------------------------------			
-			for(int k = 0; k < currentDoc.getValue().size(); k++)				//THIS PART IS STILL UNFINISHED
+			for(int k = 0; k < urlsWithWord.size(); k++)				//THIS PART IS STILL UNFINISHED
 			{
+//				System.out.println("In TFIDF While Loop For Loop 1");
 				ArrayList<HashMap> allTfidf = new ArrayList<HashMap>();
+									
+				findObj = mdb.find(metaData.class, "hashTitle", urlsWithWord.get(k)).get();
+				text = findObj.getText().split(" ");
 				
-				for(int j = 0; j < arr.length; j++)
+				for(int j = 0; j < text.length; j++)
 				{
-					if(text.equals(arr[j]))
+//					System.out.println("In TFIDF While Loop For Loop 2");
+					if(word.equals(text[j]))
 					{
 						tf++;
 					}
@@ -151,50 +151,83 @@ public class Indexing
 				tfidfweight = Math.log(1 + tf) * Math.log10(N/df);
 				
 				HashMap index = new HashMap();
-				index.put(text,tfidfweight);
+				index.put(word, tfidfweight);
 				
+				wordAndTfidf = findObj.getTfidfArrList();
+				
+				System.out.println("In TFIDF While Loop right before add index");
+				
+				wordAndTfidf.add(index);
+				findObj.setTfidfArrList( wordAndTfidf );
+//				mdb.save(findObj);
 				allTfidf.add(index);
 			}
-//------------------------------------------------------------------------------------------------------------			
-						
-//				for(int o = 0; o < args.length; o++)
-//				{
-//					for(int j = 0; j < arr.length; j++)
-//					{
-//						if(args[i].equals(arr[j]))
-//						{
-//							tf++;
-//						}
-//					}
-//				}			
-//			} 
-//			catch (JSONException e1) 
-//			{
-//				e1.printStackTrace();
-//			}		
-//			if(tf > 0)
-//			{
-//				df++;
-//			}
-		
-//			try 
-//			{
-//				djo.put("Index", tfidfweight);
-//			} 
-//			catch (JSONException e) 
-//			{
-//				e.printStackTrace();
-//			}
 			
 		}
-		
-		
-		return value;
+	}	
+//--------------------------------------------------------------------------------------------------------------
+	public static void printAll(List<metaData> currentUrlList)
+	{
+		String path = "C:/Users/Allen/Desktop/cs454 assignments/allUrlObjects.txt";
+        Writer output = null;
+        File file = new File(path);
+        
+        try 
+        {
+			output = new BufferedWriter(new FileWriter(file));
+		} 
+        catch (IOException e) 
+        {
+			e.printStackTrace();
+		}
+        
+       
+        for(int p = 0; p < currentUrlList.size(); p++)
+        {
+        	try 
+        	{		
+	        	output.write("{");
+				((BufferedWriter) output).newLine();
+				output.write("\t\"id\": " + currentUrlList.get(p).Id);
+				((BufferedWriter) output).newLine();
+				output.write("\t\"Path\": " + "\"" + currentUrlList.get(p).getPath() + "\"");
+				((BufferedWriter) output).newLine();
+				output.write("\t\"Text\": " + "\"" + currentUrlList.get(p).getText() + "\"");
+				((BufferedWriter) output).newLine();
+				output.write("\t\"Url\": " + "\"" + currentUrlList.get(p).getUrl() + "\"");
+				((BufferedWriter) output).newLine();
+				output.write("\t\"Title\": " + "\"" + currentUrlList.get(p).getTitle() + "\"");
+				((BufferedWriter) output).newLine();
+				
+				output.write("\t\"hashTitle\": " + "\"" + currentUrlList.get(p).getHash() + "\"");
+				
+//				for(int g = 0; g < currentUrlList.get(p).getTfidfArrList().size(); g++)
+//				{
+//					output.write("TFIDF: " + currentUrlList.get(p).getTfidfArrList());//.get(g)
+//					((BufferedWriter) output).newLine();
+//				}
+			
+				((BufferedWriter) output).newLine();
+				output.write("}");
+				((BufferedWriter) output).newLine();
+			} 
+        	catch (IOException e) 
+        	{
+				e.printStackTrace();
+			}
+        }
+        
+        try 
+		{
+			output.close();
+		} 
+		catch (IOException e) 
+		{
+			e.printStackTrace();
+		}
 	}
 	
-//--------------------------------------------------------------------------------------------------------------
 }
-
 
 //-------------------------------------------------------------------------
 /*
