@@ -1,31 +1,46 @@
 package edu.csula.cs454.example;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.Writer;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.json.JSONException;
-import org.json.JSONObject;
-import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import org.mongodb.morphia.Datastore;
+import org.mongodb.morphia.Morphia;
 
-import com.mongodb.DB;
-import com.mongodb.DBCollection;
-import com.mongodb.DBCursor;
-import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
-import com.mongodb.util.JSON;
+
+
+/* 
+ * We used http://www.mkyong.com/java/jsoup-html-parser-hello-world-examples/ as reference for our extractor 
+ * We used http://jsoup.org/cookbook/extracting-data/example-list-links to get the http links
+ * We used http://www.mkyong.com/java/java-sha-hashing-example/
+ */
 
 public class BasicCrawler 
 {
+	static Datastore mdb = null;
+	
 	public static void main(String[] args) 
-	{			
+	{			 
 		MongoClient mongo = new MongoClient( "localhost" , 27017 );
-		DB db = mongo.getDB("cs454-db");
-		DBCollection collection = db.getCollection("dummyTable");	
+		
+		Morphia morphia = new Morphia();
+		morphia.map(metaData.class);
+		morphia.map(wordData.class);
+		mdb = morphia.createDatastore(mongo, "cs454");
 		
 		int count = 1;
 		String original = args[1];
@@ -34,7 +49,7 @@ public class BasicCrawler
 		String depth = args[2];
 		String lvl = args[3];
 				
-		boolean ex = false;
+		boolean ex = false;	
 		
 		if( !(url.equals("-u")) || (!(depth.equals("-d"))) )  
 		{
@@ -48,7 +63,7 @@ public class BasicCrawler
 		
 		if(args.length == 4)
 		{
-			crawlUrl(collection, cUrl, args[3], count, original, avu, ex);	//args[1],
+			crawlUrl(cUrl, args[3], count, avu, ex);//word, collection, 
 		}
 		else if(args.length == 5)
 		{
@@ -56,8 +71,8 @@ public class BasicCrawler
 
 			if( extract.equals("-e") )
 			{
-				ex = true;
-				crawlUrl(collection, cUrl, args[3], count, original, avu, ex);	//args[1],
+				ex = true;			
+				crawlUrl(cUrl, args[3], count, avu, ex);//word, collection, 
 			}
 			else
 			{
@@ -70,9 +85,8 @@ public class BasicCrawler
 			System.exit(0);
 		}		
 	}
- //-------------------------------------------------------------------------------------------
-	static void crawlUrl(DBCollection collection, ArrayList<String> currentList, String depth, int count, String original, 
-			ArrayList<String> p, boolean x)	//, String url
+//-------------------------------------------------------------------------------------------
+	static void crawlUrl(ArrayList<String> currentList, String depth, int count, ArrayList<String> p, boolean x)
 	{
 		int tracker = count;
 		
@@ -94,53 +108,65 @@ public class BasicCrawler
 					
 					p.add(currentList.get(i));
 					
-					try 
-					{
-						if(x == true)
-						{	
-							JSONObject tester = new JSONObject();
-							tester.put("Name", doc.title());	//gets the name of official website
-							tester.put("URL", currentList.get(i));
+					links = doc.select("a[href]");
+					
+					if(x == true)
+					{	
+						metaData tester = new metaData();
+						tester.setTitle(doc.title());	//gets the name of official website
+						tester.setUrl(currentList.get(i));
 							
-							DBObject dbObject = (DBObject) JSON.parse(tester.toString());
-							collection.insert(dbObject);
-						}					
+						String text = doc.select("body").text();							
+						tester.setText(text);
 						
-//						DBCursor cursorDoc = collection.find();
-//						while (cursorDoc.hasNext()) 
-//						{
-//							System.out.println(cursorDoc.next());
-//						}
-
-						links = doc.select("a[href]");
-						for (Element link : links) 
-						{	
-							addUrl = "" + link.absUrl("href");
+						checkWord(text);	//word, 
+						
+						System.out.println("All Text on site : " + text);
+						
+						try 
+				        {			
+							String hash = hashFunction(doc.title());
+							tester.setHash(hash);
+							String path = "C:/Users/Vincent/Desktop/CS454_SE/CrawledInfo/" + hash + ".html";
+					        Writer output = null;
+					        
+					        File file = new File(path);				        
+							output = new BufferedWriter(new FileWriter(file));									        
+					        String docString = doc.toString();
+					        output.write(docString);
+							output.close();
 							
-							boolean same = false;
-							for(int j = 0; j < p.size(); j++)
+							tester.setPath(path);
+						} 
+						catch (IOException e) 
+						{
+							e.printStackTrace();
+						}
+		
+						mdb.save(tester);							
+					}					
+					
+					
+					for (Element link : links) 
+					{	
+						addUrl = "" + link.absUrl("href");
+						
+						boolean same = false;
+						for(int j = 0; j < p.size(); j++)
+						{
+							if(p.get(j).equals(addUrl))
 							{
-								if(p.get(j).equals(addUrl))
-								{
-									same = true;
-								}
+								same = true;
 							}
-							
-							if(same != true)
-							{
-								//System.out.println("Inside of addUrl: " + addUrl);
-								list.add(addUrl);
-							}					
 						}
 						
-						System.out.println("Depth level: " + dep);
+						if(same != true)
+						{;
+							list.add(addUrl);
+						}					
+					}
 					
-					} 
-					catch (JSONException e) 
-					{
-						System.out.println("Catch: 1");
-						e.printStackTrace();
-					}						
+					System.out.println("Depth level: " + dep);								
 				} 
 				catch (IOException e) 
 				{
@@ -157,7 +183,7 @@ public class BasicCrawler
 			System.out.println("Newdep contains: " + newDep);
 			System.out.println("Tracker contains: " + tracker);
 			
-			crawlUrl(collection, list , newDep, tracker, original, p, x);
+			crawlUrl(list , newDep, tracker, p, x); 
 		}
 		else
 		{
@@ -166,4 +192,113 @@ public class BasicCrawler
 		}
 		
 	}
+//-----------------------------------------------------------------------------------------------------------------
+	public static String hashFunction(String name)
+	{
+		String toHash = name;
+		MessageDigest digest;
+		byte[] hash;
+		String hashName = "";
+		StringBuffer sb = new StringBuffer();
+		try 
+		{
+			digest = MessageDigest.getInstance("SHA-256");
+			hash = digest.digest(toHash.getBytes(StandardCharsets.UTF_8));
+						
+	        for (int i = 0; i < hash.length; i++) 
+	        {
+	        	sb.append(Integer.toString((hash[i] & 0xff) + 0x100, 16).substring(1));
+	        }
+				
+			hashName = sb.toString();
+		} 
+		catch (NoSuchAlgorithmException e) 
+		{
+			e.printStackTrace();
+		}
+		
+		return hashName;
+	}
+//-----------------------------------------------------------------------------------------------------------------
+	private static String readFile(String fileName) throws IOException
+	{	
+		//File file = new File(fileName);
+		
+		BufferedReader reader = new BufferedReader(new FileReader(fileName));
+		
+		String line = null;
+		StringBuilder sb = new StringBuilder();
+		String ls = System.getProperty("line.separator");
+		
+		try
+		{
+			while((line = reader.readLine()) != null)
+			{
+				sb.append(line);
+				sb.append(ls);
+			}
+			return sb.toString();
+		} 
+		finally
+		{
+			reader.close();
+		}
+	}
+//-----------------------------------------------------------------------------------------------------------------	
+	public static void checkWord(String texts)
+	{
+		String[] array = texts.split(" ");
+		
+		try 
+		{
+			String file = "C:/Users/Vincent/Desktop/CS454_SE/stopwords.txt"; // C:/Users/Vincent/Desktop/CS454_SE/stopwords.txt
+			String check = readFile(file);
+		
+			for(int i = 0; i < array.length; i++)
+			{
+				if(array[i].matches(check))
+				{
+					addWord(array[i]);
+				}
+			}
+		}
+		catch (IOException e)
+		{
+			e.printStackTrace();
+		}
+		
+	}			
+//-----------------------------------------------------------------------------------------------------------------
+	public static void addWord(String uniqueWord)
+	{
+		wordData mWord = new wordData();
+		
+		List<wordData> currentList = mdb.find(wordData.class).asList();
+	
+		if(currentList.size() == 0)
+		{
+			mWord.setWord(uniqueWord);
+			mdb.save(mWord);
+		}
+		else
+		{
+			int count = 0;
+			
+			for(int i = 0; i < currentList.size(); i++)
+			{
+				if( !(uniqueWord.equals(currentList.get(i).getWord())) )
+				{
+					count++;
+				}
+			}
+			if(count == currentList.size())
+			{
+				mWord.setWord(uniqueWord);
+
+				mdb.save(mWord);
+			}
+			
+		}
+	}
+//-----------------------------------------------------------------------------------------------------------------
 }
