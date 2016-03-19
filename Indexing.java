@@ -13,16 +13,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.json.JSONException;
-import org.json.JSONObject;
 import org.mongodb.morphia.Datastore;
 import org.mongodb.morphia.Morphia;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.mongodb.BasicDBObject;
-import com.mongodb.DB;
-import com.mongodb.DBCollection;
-import com.mongodb.DBCursor;
 import com.mongodb.MongoClient;
 
 public class Indexing 
@@ -91,7 +83,7 @@ public class Indexing
 	{				
 		System.out.println("In TFIDF");
 		
-		double value = 0;
+	//	double value = 0;
 		
 		HashMap<String, ArrayList<String>> filterHm = hm;
 	
@@ -104,7 +96,7 @@ public class Indexing
 		
 		double tfidfweight;
 		
-		List<metaData> currentUrlList = mdb.find(metaData.class).asList();
+	//	List<metaData> currentUrlList = mdb.find(metaData.class).asList();
 				
 		String word;
 		
@@ -117,8 +109,8 @@ public class Indexing
 		ArrayList<String> urlsWithWord;
 		
 		metaData findObj;
-		ArrayList<HashMap> wordAndTfidf;
 		
+		ArrayList<HashMap<String, Double>> wordAndTfidf;
 		
 		while(i.hasNext())
 		{	
@@ -128,18 +120,20 @@ public class Indexing
 			word = currentDoc.getKey();		
 			
 			urlsWithWord = currentDoc.getValue();
-//------------------------------------------------------------------------------------------------------------			
-			for(int k = 0; k < urlsWithWord.size(); k++)				//THIS PART IS STILL UNFINISHED
+
+			for(int k = 0; k < urlsWithWord.size(); k++)				
 			{
-//				System.out.println("In TFIDF While Loop For Loop 1");
-				ArrayList<HashMap> allTfidf = new ArrayList<HashMap>();
+				System.out.println("In TFIDF While Loop For Loop 1");
+				
+				ArrayList<HashMap<String, Double>> allTfidf = new ArrayList<HashMap<String, Double>>();
 									
 				findObj = mdb.find(metaData.class, "hashTitle", urlsWithWord.get(k)).get();
 				text = findObj.getText().split(" ");
 				
 				for(int j = 0; j < text.length; j++)
 				{
-//					System.out.println("In TFIDF While Loop For Loop 2");
+					System.out.println("In TFIDF While Loop For Loop 2");
+				
 					if(word.equals(text[j]))
 					{
 						tf++;
@@ -148,21 +142,29 @@ public class Indexing
 								
 				df = currentDoc.getValue().size();
 				
+				System.out.println("df = " + df);
+				System.out.println("tf = " + tf);
 				tfidfweight = Math.log(1 + tf) * Math.log10(N/df);
 				
-				HashMap index = new HashMap();
+				HashMap<String, Double> index = new HashMap<String, Double>();
 				index.put(word, tfidfweight);
+				
+				System.out.println("Index word: " + word);
+				System.out.println("Index word - tfidfweight: " + tfidfweight);
+				System.out.println("inside of the hashmap index: " + index);
 				
 				wordAndTfidf = findObj.getTfidfArrList();
 				
 				System.out.println("In TFIDF While Loop right before add index");
 				
 				wordAndTfidf.add(index);
+				
 				findObj.setTfidfArrList( wordAndTfidf );
-//				mdb.save(findObj);
+				
+				mdb.save(findObj);
+				
 				allTfidf.add(index);
 			}
-			
 		}
 	}	
 //--------------------------------------------------------------------------------------------------------------
