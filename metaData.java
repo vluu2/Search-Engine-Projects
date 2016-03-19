@@ -1,5 +1,8 @@
 package edu.csula.cs454.example;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+
 import org.bson.types.ObjectId;
 import org.mongodb.morphia.annotations.Entity;
 import org.mongodb.morphia.annotations.Id;
@@ -14,7 +17,8 @@ public class metaData
 	String url;
 	String title;
 	String hashTitle;
-
+	ArrayList<HashMap<String, Double>> tfidf = new ArrayList<HashMap<String, Double>>();;
+	
 	public metaData() 
 	{
 		
@@ -50,6 +54,11 @@ public class metaData
 		return hashTitle;
 	}
 //-----------------------------------------------------------------------------------------------------------	
+	public ArrayList<HashMap<String, Double>> getTfidfArrList()
+	{		
+		return tfidf;
+	}
+//-----------------------------------------------------------------------------------------------------------	
 	public void setPath(String path)
 	{		
 		this.path = path;
@@ -73,6 +82,11 @@ public class metaData
 	public void setHash(String hash)
 	{		
 		this.hashTitle = hash;
+	}
+//-----------------------------------------------------------------------------------------------------------	
+	public void setTfidfArrList(ArrayList<HashMap<String, Double>> tfidf)
+	{		
+		this.tfidf = tfidf;
 	}
 //-----------------------------------------------------------------------------------------------------------	
 }
