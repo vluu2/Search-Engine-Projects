@@ -1,11 +1,11 @@
 package edu.csula.cs454.example;
 
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.ObjectOutputStream;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -13,9 +13,6 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.json.JSONException;
-import org.json.JSONObject;
-import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -23,23 +20,14 @@ import org.jsoup.select.Elements;
 import org.mongodb.morphia.Datastore;
 import org.mongodb.morphia.Morphia;
 
-import com.mongodb.BasicDBObject;
-import com.mongodb.DB;
-import com.mongodb.DBCollection;
-import com.mongodb.DBCursor;
-import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
-import com.mongodb.util.JSON;
 
 
 /* 
  * We used http://www.mkyong.com/java/jsoup-html-parser-hello-world-examples/ as reference for our extractor 
  * We used http://jsoup.org/cookbook/extracting-data/example-list-links to get the http links
  * We used http://www.mkyong.com/java/java-sha-hashing-example/
- * 
- * 
- * 
- * */
+ */
 
 public class BasicCrawler 
 {
@@ -134,7 +122,7 @@ public class BasicCrawler
 						checkWord(text);	//word, 
 						
 						System.out.println("All Text on site : " + text);
-													
+						
 						try 
 				        {			
 							String hash = hashFunction(doc.title());
@@ -232,84 +220,69 @@ public class BasicCrawler
 		return hashName;
 	}
 //-----------------------------------------------------------------------------------------------------------------
+	private static String readFile(String fileName) throws IOException
+	{	
+		
+		BufferedReader reader = new BufferedReader(new FileReader(fileName));
+		
+		String line = null;
+		StringBuilder sb = new StringBuilder();
+		String ls = System.getProperty("line.separator");
+		
+		try
+		{
+			while((line = reader.readLine()) != null)
+			{
+				sb.append(line);
+				sb.append(ls);
+			}
+			return sb.toString();
+		} 
+		finally
+		{
+			reader.close();
+		}
+	}
+//-----------------------------------------------------------------------------------------------------------------	
 	public static void checkWord(String texts)
 	{
 		String[] array = texts.split(" ");
 		
-		String[] check = {"a", "able", "about", "above", "abst", "accordance", "accordingly", "across", "act", 
-							"actually", "added", "adj", "affected", "affecting", "affects", "after", "afterwards", "again", "against", 
-							"ah", "all", "almost", "alone", "along", "already", "also", "although", "always", "am", "among", "amongst",
-							"an", "and", "announce", "another", "any", "anybody", "anyhow", "anymore", "anyone", "anything", "anyway", "anyways",
-							"anywhere", "apparently", "approximately", "aren", "arent", "aren't", "arise", "around", "as", "aside", "ask", 
-							"asking", "at", "auth", "available", "away", "awfully", "back", "be", "became", "because", "become", "becomes", 
-							"becoming", "been", "before", "beforehand", "begin", "beginning", "beginnings", "begins", "behind", "being", "believe",
-							"below", "beside", "besides", "between", "beyond", "biol", "both", "brief", "briefly", "but", "by", "came", "can",
-							"cannot", "can't", "cause", "causes", "certain", "certainly", "come", "comes", "contain", "containing", "contains", 
-							"could", "couldn't", "date", "did", "didn't", "different", "do", "does", "doesn't", "doing", "done", "don't", "down",
-							"downwards", "due", "during", "each", "ed", "edu", "effect", "eg", "eight", "eighty", "either", "else", "elsewhere", 
-							"end", "ending", "enough", "especially", "et", "et-al", "etc", "even", "ever", "every", "everybody", "everyone", 
-							"everything", "everywhere", "ex", "except", "far", "few", "fifth", "first", "five", "fix", "followed", "following",
-							"follows", "for", "former", "formerly", "forth", "found", "four", "from", "further", "furthermore", "gave", "get", 
-							"gets", "getting", "give", "given", "gives", "giving", "go", "goes", "gone", "got", "gotten", "had", "happens", 
-							"hardly", "has", "hasn't", "have", "haven't", "having", "he", "hed", "hence", "her", "here", "hereafter", "hereby", 
-							"herein", "heres", "hereupon", "hers", "herself", "hes", "hi", "hid", "him", "himself", "his", "hither", "home", "how", 
-							"howbeit", "however", "hundred", "i", "id", "ie", "if", "i'll", "im", "immediate", "immediately", "importance", 
-							"important", "in", "inc", "indeed", "index", "information", "instead", "into", "invention", "inward", "is", "isn't", 
-							"it", "it'd", "it'll", "its", "itself", "i've", "just", "keep", "keeps", "kept", "kg", "km", "know", "known", 
-							"largely", "last", "lately", "later", "latter", "latterly", "least", "less", "lest", "let", "lets", "like", "liked",
-							"likely", "line", "little", "'ll", "look", "looking", "looks", "ltd", "made", "mainly", "make", "makes", "many", 
-							"may", "maybe", "me", "mean", "means", "meantime", "meanwhile", "merely", "mg", "might", "million", "miss", "ml", 
-							"more", "moreover", "most", "mostly", "mr", "mrs", "much", "mug", "must", "my", "myself", "name", "namely", "nay", 
-							"near", "nearly", "necessarily", "necessary", "need", "needs", "neither", "never", "nevertheless", "new", "next", 
-							"nine", "ninety", "no", "nobody", "non", "none", "nonetheless", "noone", "nor", "normally", "nos", "not", "noted", 
-							"nothing", "now", "nowhere", "obtain", "obtained", "obviously", "of", "off", "often", "oh", "ok", "okay", "old", 
-							"omitted", "on", "once", "one", "ones", "only", "onto", "or", "ord", "other", "others", "otherwise", "ought", "our",
-							"ourselves", "out", "outside", "over", "overall", "owing", "own", "page", "pages", "part", "particular", "particularly",
-							"past", "per", "perhaps", "placed", "please", "plus", "poorly", "possible", "possibly", "potentially", "pp", 
-							"predominantly", "present", "previously", "primarily", "probably", "promptly", "proud", "provides", "put", "que", 
-							"quickly", "quite", "ran", "rather", "re", "readily", "really", "recent", "recently", "ref", "refs", "regarding", 
-							"regardless", "regards", "related", "relatively", "research", "respectively", "resulted", "resulting", "results", 
-							"right", "run", "said", "same", "saw", "say", "saying", "says", "sec", "section", "see", "seeing", "seem", "seemed", 
-							"seeming", "seems", "seen", "self", "selves", "sent", "seven", "several", "shall", "she", "shed", "she'll", "shes", 
-							"should", "shouldn't", "show", "showed", "shown", "showns", "shows", "significant", "significantly", "similar", 
-							"simiarly", "since", "six", "slightly", "so", "some", "somebody", "somehow", "someone", "somethan", "something", 
-							"sometime", "sometimes", "somewhat", "somewhere", "soon", "sorry", "specifically", "specified", "specify", "specifying",
-							"still", "stop", "strongly", "sub", "substantially", "successfully", "such", "sufficiently", "suggest", "sup", "sure",
-							"take", "taken", "taken", "taking", "tell", "tends", "than", "thank", "thanks", "thanx", "that", "that'll", "thats", 
-							"that've", "the", "their", "theirs", "them", "themselves", "then", "thence", "there", "thereafter", "thereby", "thered", 
-							"therefore", "therein", "there'll", "thereof", "thereto", "thereupon", "there've", "these", "they", "they'll", "they're",
-							"they've", "think", "this", "those", "thou", "though", "thousand", "through", "throughout", "thru", "thus", "til", "tip",
-							"to", "together", "too", "took", "toward", "towards", "tried", "tries", "truly", "try", "trying", "twice", "two", "u", 
-							"under", "unfortunately", "unless", "unlike", "unlikely", "until", "unto", "up", "upon", "ups", "us", "use", "used", 
-							"useful", "usefully", "usefulness", "uses", "using", "usually", "value", "various", "'ve", "very", "via", "viz", "vol", 
-							"vols", "want", "wants", "was", "wasn't", "way", "we", "we'd", "welcome", "we'll", "went", "were", "weren't", "we've", 
-							"what", "whatever", "what'll", "what's", "when", "whence", "whenever", "where", "whereafter", "whereas", "whereby", 
-							"wherein", "wheres", "whereupon", "wherever", "whether", "which", "while", "whim", "whither", "who", "who'd", "whoever",
-							"whole", "who'll", "whom", "whomever", "whos", "whose", "why", "widely", "willing", "wish", "with", "within", "without",
-							"won't", "words", "world", "would", "wouldn't", "www", "y", "yes", "yet", "you", "you'd", "you'll", "your", "you're", 
-							"yours", "yourself", "yourselves", "you've", "zero"
-						};
+		BufferedReader br = null;
 		
-		int count = 0;
-		
-		for(int i = 0; i < array.length; i++)
+		try 
 		{
-			for(int j = 0; j < check.length; j++)
+			String file = "C:/Users/Allen/Desktop/cs454 assignments/stopwords.txt"; // C:/Users/Vincent/Desktop/CS454_SE/stopwords.txt
+			String check;
+		
+			br = new BufferedReader(new FileReader(file));
+			
+			boolean toAdd = false;
+			
+			for(int i = 0; i < array.length; i++)
 			{
-				if( !(array[i].equals(check[j])) )
+				while((check = br.readLine()) != null)
 				{
-					count++;
+					if(array[i].matches(check))
+					{
+						toAdd = true;
+					}
+					
+					if(toAdd == false )
+					{
+						addWord(array[i]);
+					}
+					
 				}
 			}
 			
-			if( count == check.length )
-			{
-				addWord(array[i]); 		
-			}
-			
-			count = 0;
-		}	
-	}
+		}
+		catch (IOException e)
+		{
+			e.printStackTrace();
+		}
+		
+	}			
 //-----------------------------------------------------------------------------------------------------------------
 	public static void addWord(String uniqueWord)
 	{
